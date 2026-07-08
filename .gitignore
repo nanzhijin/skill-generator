@@ -13,15 +13,16 @@ build/
 .vscode/
 .idea/
 
-# Generated skills (test artifacts)
-*-audit/
-*-designer/
-*-assistant/
-*-generator/
+# Generated skills (test artifacts — any directory with SKILL.md + config.yaml)
+chinese-romance-*/
 bottle-cap-*/
 light-novel-*/
 python-web-*/
 decision-*/
+*-audit/
+*-designer/
+*-assistant/
+*-generator/
 
 # Debug artifacts
 .skill-generator-last-response.txt
