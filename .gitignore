@@ -26,3 +26,8 @@ decision-*/
 
 # Debug artifacts
 .skill-generator-last-response.txt
+*-skill/
+*-engine/
+*-designer/
+*-generator/
+novel-*/
