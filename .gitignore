@@ -1,0 +1,27 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+
+# Generated skills (test artifacts)
+*-audit/
+*-designer/
+*-assistant/
+*-generator/
+bottle-cap-*/
+light-novel-*/
+python-web-*/
+decision-*/
+
+# Debug artifacts
+.skill-generator-last-response.txt

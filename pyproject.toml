@@ -1,0 +1,22 @@
+[project]
+name = "skill-generator"
+version = "0.1.0"
+description = "Batch-Pool Skill Generator — create and validate Batch-Pool Skill directories"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "openai>=1.0",
+    "anthropic>=0.40",
+    "python-dotenv>=1.0",
+]
+
+[project.scripts]
+skill-generator = "skill_generator.generator.cli:main"
+skg = "skill_generator.generator.cli:main"
+
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["skill_generator*"]
