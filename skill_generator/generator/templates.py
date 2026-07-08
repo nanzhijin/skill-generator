@@ -64,9 +64,10 @@ BUILTIN_PERSPECTIVES: dict = {
     "correctness": {
         "name": "correctness",
         "prompt": (
-            "从事实准确性角度批判这条分析。引用的代码行是否存在？描述的"
-            "行为是否真的发生？技术判断是否有事实错误？"
-            "只指出确实有问题的地方，不要制造假问题。"
+            "Critique this analysis from the perspective of factual accuracy. "
+            "Do the referenced lines of code actually exist? Does the described "
+            "behavior actually occur? Are there factual errors in the technical "
+            "judgment? Only point out real problems; do not fabricate issues. "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": False,
@@ -74,8 +75,10 @@ BUILTIN_PERSPECTIVES: dict = {
     "completeness": {
         "name": "completeness",
         "prompt": (
-            "从完整性的角度批判这条分析。是否遗漏了相关的安全问题？"
-            "边界条件是否被考虑？有没有其他攻击向量没被提到？"
+            "Critique this analysis from the perspective of completeness. "
+            "Are there related security issues that were missed? "
+            "Have edge cases been considered? Are there attack vectors "
+            "that were not mentioned? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": False,
@@ -83,8 +86,10 @@ BUILTIN_PERSPECTIVES: dict = {
     "actionability": {
         "name": "actionability",
         "prompt": (
-            "从可操作性的角度批判这条分析。修复建议是否具体？"
-            "一个初级工程师能否看懂并执行？是否给出了具体的代码修改方案？"
+            "Critique this analysis from the perspective of actionability. "
+            "Are the remediation suggestions specific? "
+            "Could a junior engineer understand and execute them? "
+            "Is a concrete code modification plan provided? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": False,
@@ -92,9 +97,10 @@ BUILTIN_PERSPECTIVES: dict = {
     "consistency": {
         "name": "consistency",
         "prompt": (
-            "从报告一致性的角度批判这条分析。这条发现和报告中的其他发现"
-            "是否矛盾？严重程度评级和其他发现相比是否一致？是否有两条发现"
-            "实际上说的是同一个问题？"
+            "Critique this analysis from the perspective of report consistency. "
+            "Does this finding contradict other findings in the report? "
+            "Is the severity rating consistent with other findings? "
+            "Are there two findings that actually describe the same issue? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": True,
@@ -102,8 +108,10 @@ BUILTIN_PERSPECTIVES: dict = {
     "severity-calibration": {
         "name": "severity-calibration",
         "prompt": (
-            "从严重程度合理性的角度批判这条分析。严重等级是否合理？"
-            "和同报告中其他发现的严重程度相比，是否偏高或偏低？"
+            "Critique this analysis from the perspective of severity calibration. "
+            "Is the severity level reasonable? "
+            "Compared to other findings in the same report, is it rated "
+            "too high or too low? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": True,
@@ -111,8 +119,9 @@ BUILTIN_PERSPECTIVES: dict = {
     "evidence-quality": {
         "name": "evidence-quality",
         "prompt": (
-            "从证据质量的角度批判这条分析。发现的支撑证据是否充分？"
-            "有没有'感觉像'但缺乏具体证据的断言？"
+            "Critique this analysis from the perspective of evidence quality. "
+            "Is the supporting evidence for the finding sufficient? "
+            "Are there assertions that 'feel right' but lack concrete evidence? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": False,
@@ -120,8 +129,9 @@ BUILTIN_PERSPECTIVES: dict = {
     "false-positive-check": {
         "name": "false-positive-check",
         "prompt": (
-            "从误报检测的角度批判这条分析。这条发现有没有可能是误报？"
-            "在什么条件下它会是假阳性？"
+            "Critique this analysis from the perspective of false positive detection. "
+            "Could this finding be a false positive? "
+            "Under what conditions would it be a false positive? "
             'Respond with JSON: {"has_issues": bool, "issues": [{"point": "...", "severity": "critical|major|minor"}]}'
         ),
         "needs_context": False,
@@ -208,17 +218,17 @@ $perspectives_yaml
 REFERENCE_TEMPLATE = Template(
     """# $task_label
 
-## 背景
-<!-- TODO: 描述这个分类任务的背景和目的。1-2 句话。 -->
+## Background
+<!-- TODO: Describe the background and purpose of this classification task. 1-2 sentences. -->
 
-## 分析维度
-<!-- TODO: 列出具体检查项。每个维度应该是一个可操作的判断标准。 -->
+## Analysis Dimensions
+<!-- TODO: List specific check items. Each dimension should be an actionable judgment criterion. -->
 1. <!-- TODO -->
 2. <!-- TODO -->
 3. <!-- TODO -->
 
-## 输出格式
-<!-- 保持以下 JSON schema 不变，或根据 task 特性调整字段 -->
+## Output Format
+<!-- Keep the following JSON schema unchanged, or adjust fields based on task characteristics -->
 {
   "category": "$task_id",
   "findings": [
@@ -227,7 +237,7 @@ REFERENCE_TEMPLATE = Template(
       "title": "...",
       "severity": "LOW|MEDIUM|HIGH|CRITICAL",
       "description": "...",
-      "location": "文件:行号",
+      "location": "file:line",
       "remediation": "..."
     }
   ],
@@ -235,8 +245,8 @@ REFERENCE_TEMPLATE = Template(
   "summary": "..."
 }
 
-## 评估标准
-<!-- TODO: 定义打分标准 -->
+## Scoring Criteria
+<!-- TODO: Define scoring criteria -->
 - 90-100: <!-- TODO -->
 - 70-89: <!-- TODO -->
 - 50-69: <!-- TODO -->

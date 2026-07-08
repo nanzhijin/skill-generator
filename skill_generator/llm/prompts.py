@@ -120,22 +120,22 @@ Every references/*.md MUST have these four sections:
 
 # [Task Label]
 
-## 背景
+## Background
 EXACTLY 1-2 sentences. HARD limit enforced by parser.
 State the task's purpose and scope.
 
-## 分析维度
+## Analysis Dimensions
 1. [Domain-appropriate criterion with evaluation anchor]
 2. [Domain-appropriate criterion with evaluation anchor]
 3. ... (at least 3 dimensions)
 
-## 输出格式
+## Output Format
 JSON schema for this task's output. MUST include top-level fields:
 "category" (string), "score" (0-100), "summary" (string).
 Design nested fields to fit the domain — findings for audit, characters
 for creative, evaluations for analysis, etc.
 
-## 评估标准
+## Evaluation Criteria
 Design a scoring rubric grounded in the RESEARCH BRIEF (if provided) or
 established domain practices. Do NOT default to 0-100 four-tiers.
 
@@ -198,7 +198,7 @@ Respond with ONLY a JSON object (no markdown, no explanation):
       "id": "kebab-case-id",
       "label": "Human-Readable Label",
       "priority": "high|medium|low",
-      "reference": "# Label\\n\\n## 背景\\n...\\n\\n## 分析维度\\n1. ...\\n2. ...\\n3. ...\\n\\n## 输出格式\\n{{...}}\\n\\n## 评估标准\\n..."
+      "reference": "# Label\\n\\n## Background\\n...\\n\\n## Analysis Dimensions\\n1. ...\\n2. ...\\n3. ...\\n\\n## Output Format\\n{{...}}\\n\\n## Evaluation Criteria\\n..."
     }}
   ],
   "perspectives": [
@@ -268,10 +268,10 @@ Apply ONLY the modifications needed. Rules:
 1. Only modify reference/*.md files and perspectives. Do NOT change
    SKILL.md structure, task ids, file paths, or config.yaml defaults.
 2. Integrate modifications into the existing file structure — add a
-   dimension to 分析维度, a field to 输出格式, etc. Do NOT append a
+   dimension to Analysis Dimensions, a field to Output Format, etc. Do NOT append a
    separate "Robustness Fixes" section.
 3. Each modified reference file must still have all four sections:
-   背景, 分析维度, 输出格式, 评估标准.
+   Background, Analysis Dimensions, Output Format, Evaluation Criteria.
 4. Return ONLY modified files and perspectives. Unchanged files should
    NOT appear in your output.
 
