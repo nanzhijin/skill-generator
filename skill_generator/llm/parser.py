@@ -30,12 +30,13 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-# Required sections in every reference file
+# Required sections in every reference file. Patterns use alternation
+# to match both English (post-i18n) and Chinese (legacy) headers.
 _REQUIRED_SECTIONS = [
-    ("## 背景", "背景"),
-    ("## 分析维度", "分析维度"),
-    ("## 输出格式", "输出格式"),
-    ("## 评估标准", "评估标准"),
+    (r"## (Background|背景)", "Background"),
+    (r"## (Analysis Dimensions|分析维度)", "Analysis Dimensions"),
+    (r"## (Output Format|输出格式)", "Output Format"),
+    (r"## (Evaluation Criteria|Scoring Criteria|评估标准)", "Evaluation Criteria"),
 ]
 
 # Standard JSON fields that must be present in the output format.
@@ -251,8 +252,8 @@ def _check_reference(ref_content: str, task_id: str) -> list[str]:
     """
     warnings: list[str] = []
 
-    for marker, name in _REQUIRED_SECTIONS:
-        if marker not in ref_content:
+    for pattern, name in _REQUIRED_SECTIONS:
+        if not re.search(pattern, ref_content):
             warnings.append(
                 f"Task '{task_id}': reference missing '{name}' section"
             )
@@ -278,8 +279,8 @@ def _check_background_sentence_count(ref: str, task_id: str) -> list[str]:
     Extracts text between '## 背景' and the next '## ' heading,
     then counts sentences (split by Chinese/English terminators).
     """
-    # Extract background text: from "## 背景" to next "## " or end
-    m = re.search(r"## 背景\s*\n(.*?)(?=\n## |\Z)", ref, re.DOTALL)
+    # Extract background text: from "## Background" or "## 背景" to next "## " or end
+    m = re.search(r"## (?:Background|背景)\s*\n(.*?)(?=\n## |\Z)", ref, re.DOTALL)
     if not m:
         return []
 

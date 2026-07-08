@@ -837,12 +837,15 @@ def _apply_robustness_fixes(
         applied = True
 
     if modified_perspectives:
-        config_path = skill_dir / "config.yaml"
-        cfg = _yaml.safe_load(config_path.read_text(encoding="utf-8"))
-        persp_map = {
-            p["name"]: p
-            for p in cfg.get("loop", {}).get("perspectives", [])
-        }
+        # Merge modified perspectives into the existing list.
+        # Build a name→dict map from result.definition, then overlay modifications.
+        existing = result.definition.get("perspectives", [])
+        persp_map: dict[str, dict] = {}
+        for p in existing:
+            if isinstance(p, str):
+                persp_map[p] = {"name": p, "prompt": ""}
+            elif isinstance(p, dict):
+                persp_map[p.get("name", "")] = p
         for mp in modified_perspectives:
             persp_map[mp["name"]] = mp
         result.definition["perspectives"] = list(persp_map.values())
