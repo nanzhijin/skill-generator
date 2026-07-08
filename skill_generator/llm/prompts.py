@@ -39,27 +39,65 @@ A Skill is consumed by the Batch-Pool Engine. The Engine:
 Follow these steps for EVERY skill. Do not match the user to a fixed
 category — infer the shape from their description.
 
-### Step 1: Infer what "quality" means in this domain
-From the user's request AND the research brief (if provided below), determine:
-- What is the OUTPUT? (a report? a character sheet? a design doc?)
-- Who CONSUMES it? (a developer fixing bugs? a novelist iterating?)
-- What makes it GOOD? (no false positives? emotional resonance?
-  constraint satisfaction? actionable precision?)
-- How do EXPERTS in this domain evaluate quality? If the research brief
-  mentions specific rubrics, scoring systems, or evaluation criteria,
-  ADOPT them. Don't invent your own if the domain already has standards.
+### Step 0: Identify the Skill's Intent (DO THIS FIRST)
+Read the user's requirement and decide: is this Skill meant to ANALYZE
+something that already exists, or to GENERATE something new?
+
+**Analytical intent** — the Skill examines, audits, evaluates, diagnoses,
+or critiques a target (code, text, design, data, a decision). The output
+describes what was FOUND: issues, patterns, scores, recommendations.
+
+**Generative intent** — the Skill creates, builds, designs, writes, or
+produces output that did not previously exist (a character sheet, a plot
+outline, a world, a naming scheme, a dialogue). The output IS the creation
+itself, plus optional self-critique.
+
+This distinction changes everything downstream:
+
+| Aspect | Analytical Skill | Generative Skill |
+|--------|-----------------|-----------------|
+| Tasks decompose... | The target into independent dimensions to examine | The creative process into steps or facets to build |
+| Output format | findings/observations with evidence | the creation itself (characters, plots, names, etc.) |
+| Scoring | How thorough/accurate was the analysis? | How well does the creation satisfy the user's intent? |
+| Perspectives critique... | Whether findings are correct, complete, well-evidenced | Whether the creation is original, internally consistent, audience-ready |
+| Loop refines... | Fix errors, close gaps, calibrate severity | Deepen, enrich, sharpen — not "fix bugs" |
+
+If the user wants BOTH (e.g., "analyze my novel draft AND suggest improvements"),
+that's an analytical Skill — the target is the draft, the output is analysis.
+
+### Step 1: Infer what "quality" means for THIS intent
+From the user's request AND the research brief (if provided), determine:
+- What is the OUTPUT? (a report? a character sheet? a generated story?)
+- Who CONSUMES it? (a developer fixing bugs? a novelist iterating? a reader?)
+- What makes it GOOD? For analytical: accuracy, completeness, actionability.
+  For generative: originality, internal consistency, audience appeal,
+  adherence to user intent.
+- How do EXPERTS in this domain evaluate quality? ADOPT published rubrics
+  from the research brief. Don't invent your own if standards exist.
 
 Design the output schema, scoring rubric, and task dimensions around
 THESE answers AND the research findings — not around a preset template.
 
 ### Step 2: Design tasks by decomposing "quality"
-Split the quality standard into orthogonal dimensions. Each task checks
-one dimension independently. The Engine runs them concurrently, then
-the Loop critiques across all outputs.
+**Analytical**: split the target into orthogonal dimensions. Each task
+examines one dimension independently. The Engine runs them concurrently.
+
+**Generative**: split the creative process into facets or pipeline steps.
+Each task produces one facet of the creation. Tasks should still be
+independent (no task requires another's output). The Engine runs them
+concurrently, then synthesizes a unified creation from all facets.
 
 ### Step 3: Design perspectives from the SAME quality standard
 Each perspective is a critic that asks one question about the work.
-Derive them FROM the domain, not FROM a list:
+Derive them FROM the domain and intent, not FROM a list:
+
+**Analytical perspectives**: correctness, completeness, evidence-quality,
+actionability, false-positive-check, consistency, severity-calibration.
+
+**Generative perspectives**: internal-consistency (does it contradict itself?),
+audience-appeal (will the target consumer care?), originality (fresh take or
+cliche?), intent-alignment (does it deliver what the user asked for?),
+quality-gate (is the creation polished enough to ship?).
 
 1. What would make someone in this domain say "this is wrong"?
    -> correctness / accuracy perspective
