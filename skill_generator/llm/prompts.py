@@ -35,123 +35,33 @@ A Skill is consumed by the Batch-Pool Engine. The Engine:
 3. Runs all tasks concurrently, then runs the Loop to critique and refine
 4. Synthesizes results by task id
 
-## Task Design Method (Universal — NOT domain-specific)
-Follow these steps for EVERY skill. Do not match the user to a fixed
-category — infer the shape from their description.
+## Design Method
+The Research Brief (if provided above) contains web-searched best
+practices, published rubrics, and expert methodologies for the user's
+domain. Ground your design in these findings.
 
-### Step 0: Identify the Skill's Intent (DO THIS FIRST)
-Read the user's requirement and decide: is this Skill meant to ANALYZE
-something that already exists, or to GENERATE something new?
-
-**Analytical intent** — the Skill examines, audits, evaluates, diagnoses,
-or critiques a target (code, text, design, data, a decision). The output
-describes what was FOUND: issues, patterns, scores, recommendations.
-
-**Generative intent** — the Skill creates, builds, designs, writes, or
-produces output that did not previously exist (a character sheet, a plot
-outline, a world, a naming scheme, a dialogue). The output IS the creation
-itself, plus optional self-critique.
-
-This distinction changes everything downstream:
-
-| Aspect | Analytical Skill | Generative Skill |
-|--------|-----------------|-----------------|
-| Tasks decompose... | The target into independent dimensions to examine | The creative process into steps or facets to build |
-| Output format | findings/observations with evidence | the creation itself (characters, plots, names, etc.) |
-| Scoring | How thorough/accurate was the analysis? | How well does the creation satisfy the user's intent? |
-| Perspectives critique... | Whether findings are correct, complete, well-evidenced | Whether the creation is original, internally consistent, audience-ready |
-| Loop refines... | Fix errors, close gaps, calibrate severity | Deepen, enrich, sharpen — not "fix bugs" |
-
-If the user wants BOTH (e.g., "analyze my novel draft AND suggest improvements"),
-that's an analytical Skill — the target is the draft, the output is analysis.
-
-### Step 1: Infer what "quality" means for THIS intent
-From the user's request AND the research brief (if provided), determine:
-- What is the OUTPUT? (a report? a character sheet? a generated story?)
-- Who CONSUMES it? (a developer fixing bugs? a novelist iterating? a reader?)
-- What makes it GOOD? For analytical: accuracy, completeness, actionability.
-  For generative: originality, internal consistency, audience appeal,
-  adherence to user intent.
-- How do EXPERTS in this domain evaluate quality? ADOPT published rubrics
-  from the research brief. Don't invent your own if standards exist.
+### Step 1: Infer what "quality" means in this domain
+From the user's requirement AND the research brief:
+- What is the output? Who consumes it?
+- What makes it good? Look to the research brief for published quality
+  standards, evaluation rubrics, expert criteria. ADOPT them. If the
+  research brief names a specific framework, USE it.
+- Only if no standard is found in the research → derive your own from
+  the user's stated needs.
 
 Design the output schema, scoring rubric, and task dimensions around
-THESE answers AND the research findings — not around a preset template.
+these answers — not around any preset template.
 
-### Step 2: Design tasks by decomposing "quality"
-**Analytical**: split the target into orthogonal dimensions. Each task
-examines one dimension independently. The Engine runs them concurrently.
+### Step 2: Decompose into independent tasks
+Each task addresses one dimension independently. Tasks run concurrently.
+The research brief may suggest how experts in this domain decompose work
+— follow that structure if it exists.
 
-**Generative**: split the creative process into facets or pipeline steps.
-Each task produces one facet of the creation. Tasks should still be
-independent (no task requires another's output). The Engine runs them
-concurrently, then synthesizes a unified creation from all facets.
-
-### Step 3: Design perspectives from the SAME quality standard
-Each perspective is a critic that asks one question about the work.
-Derive them FROM the domain and intent, not FROM a list:
-
-**Analytical perspectives**: correctness, completeness, evidence-quality,
-actionability, false-positive-check, consistency, severity-calibration.
-
-**Generative perspectives**: internal-consistency (does it contradict itself?),
-audience-appeal (will the target consumer care?), originality (fresh take or
-cliche?), intent-alignment (does it deliver what the user asked for?),
-quality-gate (is the creation polished enough to ship?).
-
-1. What would make someone in this domain say "this is wrong"?
-   -> correctness / accuracy perspective
-
-2. What would make someone say "this is incomplete"?
-   -> completeness / coverage perspective
-
-3. What would make someone say "this contradicts itself"?
-   -> consistency / coherence perspective
-
-4. What would make someone say "this doesn't work for me"?
-   -> audience / consumer perspective
-
-5. What would make someone say "I've seen this before, it's nothing new"?
-   -> originality / freshness perspective
-
-Not all 5 apply to every domain. Pick the 3-5 that matter most. Name
-them in the domain's language (not generic terms). Write the critique
-prompt in the voice of a domain expert.
-
-### A worked example (audit — for illustration only)
-User wants: "code security audit"
-
-Inferred quality: zero false negatives, every finding has file:line
-evidence, remediation is actionable by a junior dev.
-
-Tasks: injection-analysis, auth-bypass-audit, dependency-scan, data-leak
-(orthogonal: each checks a different attack surface)
-
-Perspectives derived from quality standard:
-- correctness: "Is the finding factually accurate? Cite the exact line."
-- evidence-quality: "Does every HIGH/CRITICAL have file:line proof?"
-- false-positive-check: "Could this be a false alarm?"
-- actionability: "Can a junior dev execute this remediation without asking?"
-- consistency: "Do severity ratings align across ALL tasks?" (needs_context)
-
-### Another worked example (creative — for illustration only)
-User wants: "design light novel romance characters"
-
-Inferred quality: characters feel real, relationships are compelling,
-tropes are used with self-awareness, readers emotionally invest.
-
-Tasks: archetype-analysis, personality-depth, visual-design, relationship-chemistry
-(orthogonal: archetype vs personality vs visual vs interpersonal)
-
-Perspectives derived from quality standard:
-- internal-consistency: "Does the character act against their established
-  motivation anywhere? Flag contradictions."
-- romantic-chemistry: "Is the relationship dynamic genuinely compelling?
-  Does it follow the series' own emotional logic?"
-- trope-self-awareness: "Does the character acknowledge or subvert their
-  archetype? Or is it a flat cliche?"
-- audience-engagement: "Would the target reader (teen-to-young-adult,
-  romance genre) emotionally invest in this character?"
+### Step 3: Design perspectives
+Each perspective is a reviewer that asks one question about the combined
+output of all tasks. Design perspectives that reflect how actual
+practitioners in this domain evaluate work. Derive them FROM the quality
+standard you inferred in Step 1 and from the research brief.
 
 ## Structural Requirements (Hard Constraints)
 Every references/*.md MUST have these four sections:
@@ -160,55 +70,35 @@ Every references/*.md MUST have these four sections:
 
 ## Background
 EXACTLY 1-2 sentences. HARD limit enforced by parser.
-State the task's purpose and scope.
 
-## Analysis Dimensions
-1. [Domain-appropriate criterion with evaluation anchor]
-2. [Domain-appropriate criterion with evaluation anchor]
-3. ... (at least 3 dimensions)
+## Dimensions
+1. [Domain-appropriate, concrete, discriminable criterion]
+2. [Domain-appropriate, concrete, discriminable criterion]
+3. ... (at least 3)
 
 ## Output Format
 JSON schema for this task's output. MUST include top-level fields:
 "category" (string), "score" (0-100), "summary" (string).
-Design nested fields to fit the domain — findings for audit, characters
-for creative, evaluations for analysis, etc.
+Design nested fields to fit the domain.
 
 ## Evaluation Criteria
-Design a scoring rubric grounded in the RESEARCH BRIEF (if provided) or
-established domain practices. Do NOT default to 0-100 four-tiers.
+Ground the scoring rubric in the RESEARCH BRIEF (if provided). Priority:
+1. Published rubric in research → ADOPT directly. Cite its name.
+2. Domain de-facto norms → adapt them.
+3. No standard found → design your own.
 
-Priority order for rubric design:
-1. If the research brief mentions a published rubric or evaluation
-   standard used in this domain → ADOPT it directly. Cite its name.
-2. If the domain has de-facto evaluation norms (e.g., publishers use
-   character-sheet checklists, code review uses defect density) →
-   adapt them.
-3. Only if no standard exists → design your own.
-
-You may use 3 tiers, 5 tiers, qualitative labels, or pass/fail.
-The ONLY hard requirement: each tier must be DISCRIMINABLE — two
-reviewers reading the same output should independently assign the
-same tier ≥80% of the time.
+You may use any tier structure (3 tiers, 5 tiers, qualitative labels,
+pass/fail). Each tier must be DISCRIMINABLE — two reviewers reading the
+same output should independently assign the same tier ≥80% of the time.
 
 ## Perspective Self-Evaluation Limits
-The LLM executing this Skill cannot self-assess certain qualities.
-When designing perspectives, apply this rule:
-
-If a perspective asks the LLM to judge a subjective quality it cannot
-reliably self-evaluate (originality, creativity, emotional impact,
-audience appeal, "is this good?"), REFRAME it as an observable checklist:
+When designing perspectives, the executing LLM cannot self-assess
+subjective qualities (originality, emotional impact, "is this good?").
+Reframe these as observable checklists:
 
   BAD:  "Is this character fresh and original?"
   GOOD: "Check this character against the top 10 archetypes in the genre.
-         Count how many traits are direct copies vs. modified vs. novel.
-         Flag any trait that appears in ≥3 well-known characters without
-         modification as 'potentially cliche'."
-
-  BAD:  "Does this create genuine emotional resonance?"
-  GOOD: "Identify the intended emotional beat of each scene. Check: is the
-         emotion earned by prior events? Is there a setup-payoff gap? Does
-         the character react consistently with their established personality?
-         Flag beats where the emotion feels unearned or inconsistent."
+         Count how many traits are direct copies vs. modified vs. novel."
 
 The principle: replace "judge quality" with "check against known patterns."
 """
@@ -236,7 +126,7 @@ Respond with ONLY a JSON object (no markdown, no explanation):
       "id": "kebab-case-id",
       "label": "Human-Readable Label",
       "priority": "high|medium|low",
-      "reference": "# Label\\n\\n## Background\\n...\\n\\n## Analysis Dimensions\\n1. ...\\n2. ...\\n3. ...\\n\\n## Output Format\\n{{...}}\\n\\n## Evaluation Criteria\\n..."
+      "reference": "# Label\\n\\n## Background\\n...\\n\\n## Dimensions\\n1. ...\\n2. ...\\n3. ...\\n\\n## Output Format\\n{{...}}\\n\\n## Evaluation Criteria\\n..."
     }}
   ],
   "perspectives": [
@@ -256,7 +146,7 @@ RULES:
   inferred — not from a hardcoded list.
 - Each reference is a COMPLETE, self-contained markdown document
 - Background: EXACTLY 1-2 sentences. HARD limit.
-- Analysis dimensions: at least 3, domain-appropriate criteria
+- Dimensions: at least 3, domain-appropriate criteria
 - Scoring criteria: design a rubric that fits THIS domain. Can be 3 tiers,
   5 tiers, qualitative labels, or pass/fail. Each tier must be discriminable.
 - Output format: top-level "category", "score", "summary" required.
@@ -306,10 +196,10 @@ Apply ONLY the modifications needed. Rules:
 1. Only modify reference/*.md files and perspectives. Do NOT change
    SKILL.md structure, task ids, file paths, or config.yaml defaults.
 2. Integrate modifications into the existing file structure — add a
-   dimension to Analysis Dimensions, a field to Output Format, etc. Do NOT append a
+   dimension to Dimensions, a field to Output Format, etc. Do NOT append a
    separate "Robustness Fixes" section.
 3. Each modified reference file must still have all four sections:
-   Background, Analysis Dimensions, Output Format, Evaluation Criteria.
+   Background, Dimensions, Output Format, Evaluation Criteria.
 4. Return ONLY modified files and perspectives. Unchanged files should
    NOT appear in your output.
 

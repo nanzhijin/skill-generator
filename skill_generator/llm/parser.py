@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # to match both English (post-i18n) and Chinese (legacy) headers.
 _REQUIRED_SECTIONS = [
     (r"## (Background|背景)", "Background"),
-    (r"## (Analysis Dimensions|分析维度)", "Analysis Dimensions"),
+    (r"## (Dimensions|Analysis Dimensions|分析维度)", "Dimensions"),
     (r"## (Output Format|输出格式)", "Output Format"),
     (r"## (Evaluation Criteria|Scoring Criteria|评估标准)", "Evaluation Criteria"),
 ]
