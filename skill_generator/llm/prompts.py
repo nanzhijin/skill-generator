@@ -53,18 +53,24 @@ Design the output schema, scoring rubric, and task dimensions around
 these answers — not around any preset template.
 
 ### Step 2: Decompose into independent tasks
-Each task addresses one dimension independently. Tasks run concurrently.
-The research brief may suggest how experts in this domain decompose work
-— follow that structure if it exists.
+Each task covers one facet of the work independently — a dimension to
+analyze, or a part to produce. Tasks run concurrently, so no task may
+depend on another's output. The research brief may suggest how experts
+decompose work in this domain — follow that structure if it exists.
 
 ### Step 3: Design perspectives
 Each perspective is a reviewer that asks one question about the combined
-output of all tasks. Design perspectives that reflect how actual
-practitioners in this domain evaluate work. Derive them FROM the quality
-standard you inferred in Step 1 and from the research brief.
+output of all tasks — whether the output is correct (for analytical work)
+or whether it is well-made and fit for purpose (for generative work).
+Design perspectives that reflect how actual practitioners in this domain
+judge quality. Derive them FROM the quality standard you inferred in
+Step 1 and from the research brief.
 
 ## Structural Requirements (Hard Constraints)
-Every references/*.md MUST have these four sections:
+Every references/*.md MUST have these four sections. The section names are
+fixed, but what goes in them adapts to the skill's purpose — whether the
+task ANALYZES something (audit, evaluate, diagnose) or PRODUCES something
+(write, design, generate, build).
 
 # [Task Label]
 
@@ -72,18 +78,26 @@ Every references/*.md MUST have these four sections:
 EXACTLY 1-2 sentences. HARD limit enforced by parser.
 
 ## Dimensions
-1. [Domain-appropriate, concrete, discriminable criterion]
-2. [Domain-appropriate, concrete, discriminable criterion]
+The independent facets this task covers. For an analytical task: the
+criteria to check. For a generative task: the aspects to produce.
+1. [Concrete, discriminable facet]
+2. [Concrete, discriminable facet]
 3. ... (at least 3)
 
 ## Output Format
 JSON schema for this task's output. MUST include top-level fields:
-"category" (string), "score" (0-100), "summary" (string).
-Design nested fields to fit the domain.
+"category" (string), "score" (number 0-100 OR a qualitative label string),
+"summary" (string). Design the remaining fields to fit the task —
+findings for an audit, generated content for a creative task, etc.
+For generative tasks, "score" reflects how well the output meets the
+requirement (self-assessment); it is not a critique grade.
 
 ## Evaluation Criteria
-Ground the scoring rubric in the RESEARCH BRIEF (if provided). Priority:
-1. Published rubric in research → ADOPT directly. Cite its name.
+Define what "good output" means for THIS task, grounded in the RESEARCH
+BRIEF (if provided). For analytical tasks this is a scoring rubric; for
+generative tasks it is the acceptance criteria the produced output must
+satisfy. Priority:
+1. Published rubric/standard in research → ADOPT directly. Cite its name.
 2. Domain de-facto norms → adapt them.
 3. No standard found → design your own.
 
@@ -140,18 +154,21 @@ RULES:
 - At least 2 tasks, recommended 3-7
 - Follow the Task Design Method (Step 1-3) to infer quality standards,
   design orthogonal tasks, and derive domain-appropriate perspectives
-- Perspectives: use names from the built-in list ONLY if they fit the
-  domain. Otherwise, define custom perspectives as dicts with name +
-  prompt + needs_context. Derive them FROM the quality standard you
-  inferred — not from a hardcoded list.
+- A task may ANALYZE something (audit, evaluate, diagnose) or PRODUCE
+  something (write, design, generate). Shape each task to its purpose.
+- Perspectives: define custom perspectives as dicts with name + prompt +
+  needs_context, derived FROM the quality standard you inferred — not from
+  a hardcoded list. (Built-in names may be referenced only if they truly fit.)
 - Each reference is a COMPLETE, self-contained markdown document
 - Background: EXACTLY 1-2 sentences. HARD limit.
-- Dimensions: at least 3, domain-appropriate criteria
-- Scoring criteria: design a rubric that fits THIS domain. Can be 3 tiers,
-  5 tiers, qualitative labels, or pass/fail. Each tier must be discriminable.
+- Dimensions: at least 3, sized to the task (criteria to check, or aspects
+  to produce)
+- Evaluation Criteria: what "good output" means for the task — a scoring
+  rubric for analytical tasks, acceptance criteria for generative tasks.
+  Any tier structure (3/5 tiers, qualitative labels, pass/fail), discriminable.
 - Output format: top-level "category", "score", "summary" required.
-  "score" can be numeric OR qualitative label depending on domain.
-  Design nested fields to fit the domain.
+  "score" is numeric 0-100 OR a qualitative label, whichever fits the task.
+  Design nested fields to fit the task (findings, generated content, etc.).
 - Perspectives: for subjective qualities (originality, creativity, emotional
   impact), reframe as pattern-checking against known references — not as
   "judge if this is good."
