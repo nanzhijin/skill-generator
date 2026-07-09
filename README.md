@@ -9,11 +9,14 @@ A **Skill** is a directory consumed by the Batch-Pool Engine:
 ```
 my-skill/
 ├── SKILL.md         # metadata + task index
-├── config.yaml      # runtime config + Loop perspectives
-└── references/      # one LLM prompt per task
-    ├── task-a.md
-    ├── task-b.md
-    └── task-c.md
+├── config.yaml      # runtime config + Loop index (params only)
+├── references/      # one LLM prompt per task
+│   ├── task-a.md
+│   ├── task-b.md
+│   └── task-c.md
+└── perspectives/    # one critique prompt per Loop perspective
+    ├── correctness.md
+    └── evidence-quality.md
 ```
 
 ## Install

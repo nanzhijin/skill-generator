@@ -144,21 +144,29 @@ Respond with ONLY a JSON object (no markdown, no explanation):
     }}
   ],
   "perspectives": [
-    "correctness",
-    {{"name": "custom-view", "prompt": "critique instruction...", "needs_context": false}}
+    {{"name": "kebab-case-name", "label": "Human-Readable Label", "prompt": "critique instruction...", "needs_context": false}}
   ]
 }}
 
 RULES:
 - name and all task ids: STRICT kebab-case (lowercase + hyphens, no spaces)
-- At least 2 tasks, recommended 3-7
+- Task COUNT is driven by the domain, NOT a fixed number. Create one task per
+  genuinely independent dimension the work has. A simple request may need 2-3;
+  a rich, multi-faceted domain may warrant 8, 12, or more. Floor is 2 (parallel
+  execution needs at least two). There is NO upper limit — do not stop at some
+  "reasonable-looking" number. Rules: never pad with overlapping tasks, and
+  never cram several dimensions into one task just to keep the count small. If
+  the domain genuinely has 15 orthogonal facets, produce 15 tasks.
 - Follow the Task Design Method (Step 1-3) to infer quality standards,
   design orthogonal tasks, and derive domain-appropriate perspectives
 - A task may ANALYZE something (audit, evaluate, diagnose) or PRODUCE
   something (write, design, generate). Shape each task to its purpose.
-- Perspectives: define custom perspectives as dicts with name + prompt +
-  needs_context, derived FROM the quality standard you inferred — not from
-  a hardcoded list. (Built-in names may be referenced only if they truly fit.)
+- Perspective COUNT is likewise scope-driven: one per distinct quality lens the
+  domain actually cares about. Cover the lenses that matter; do not force a
+  fixed number. Each is a dict with "name" (STRICT kebab-case, ASCII — like a
+  task id), "label" (human-readable display name, may be in the user's
+  language), "prompt" (the critique instruction), and "needs_context" (bool).
+  Derive them FROM the quality standard you inferred — not from a fixed list.
 - Each reference is a COMPLETE, self-contained markdown document
 - Background: EXACTLY 1-2 sentences. HARD limit.
 - Dimensions: at least 3, sized to the task (criteria to check, or aspects
@@ -272,7 +280,7 @@ Respond with ONLY a JSON object:
     "task-id": "# Full modified reference text..."
   },
   "modified_perspectives": [
-    {"name": "perspective-name", "prompt": "updated prompt...", "needs_context": false}
+    {"name": "kebab-case-name", "label": "Human-Readable Label", "prompt": "updated prompt...", "needs_context": false}
   ]
 }
 

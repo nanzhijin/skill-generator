@@ -63,6 +63,43 @@ def _parse_frontmatter(content: str) -> dict | None:
         return None
 
 
+def _check_perspectives(skill_dir: Path, cfg: dict) -> list[str]:
+    """Check loop.perspectives integrity (🟡, non-fatal).
+
+    A perspective is valid if it carries ``file:`` (whose target exists),
+    an inline ``prompt:``, or a bare built-in ``name`` (resolvable by the
+    engine). A missing referenced file, or an entry with none of these, is a
+    warning — the Loop is optional, so this never blocks basic execution.
+    """
+    warnings: list[str] = []
+    loop = cfg.get("loop")
+    if not isinstance(loop, dict):
+        return warnings
+
+    perspectives = loop.get("perspectives")
+    if not isinstance(perspectives, list):
+        return warnings
+
+    for i, p in enumerate(perspectives):
+        if not isinstance(p, dict):
+            continue
+        name = p.get("name", f"<perspective[{i}]>")
+        file_rel = p.get("file")
+        if file_rel:
+            full = Path(skill_dir) / file_rel
+            if not full.is_file():
+                warnings.append(
+                    f"🟡 Perspective '{name}' references missing file: {file_rel}"
+                )
+        elif not p.get("prompt") and not p.get("name"):
+            # neither a file, an inline prompt, nor a resolvable name
+            warnings.append(
+                f"🟡 Perspective[{i}] has no file, prompt, or name"
+            )
+
+    return warnings
+
+
 # ═══════════════════════════════════════════════════════════
 # Public API
 # ═══════════════════════════════════════════════════════════
@@ -160,6 +197,8 @@ def validate_strict(skill_dir: Path) -> list[str]:
     8. Every task id is valid kebab-case
     9. Every task label is non-empty
     10. version is semver format (e.g. ``1.0``, not ``v1.0``)
+    11. Every loop.perspectives entry is resolvable, and any ``file:`` it
+        references exists.
 
     Returns a combined list — 🔴 errors first, then 🟡 warnings.
     Calling code may choose to ignore 🟡 entries.
@@ -168,16 +207,21 @@ def validate_strict(skill_dir: Path) -> list[str]:
 
     skill_md = Path(skill_dir) / "SKILL.md"
 
-    # 7 — config.yaml is valid YAML
+    # 7 — config.yaml is valid YAML  (+ 11 — perspective integrity)
     config_yaml = Path(skill_dir) / "config.yaml"
     if config_yaml.is_file():
         import yaml
 
+        cfg = None
         try:
             with open(config_yaml, encoding="utf-8") as fh:
-                yaml.safe_load(fh)
+                cfg = yaml.safe_load(fh)
         except (yaml.YAMLError, OSError) as exc:
             errors.append(f"🟡 config.yaml is not valid: {exc}")
+
+        # 11 — perspective integrity
+        if isinstance(cfg, dict):
+            errors.extend(_check_perspectives(skill_dir, cfg))
 
     # 8-10 — SKILL.md style checks
     if skill_md.is_file():

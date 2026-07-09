@@ -315,7 +315,10 @@ def _new_from_llm(args: argparse.Namespace) -> int:
 
     user_prompt = build_user_prompt(user_input)
     try:
-        response = adapter.generate(system_prompt, user_prompt)
+        # Generous output budget: a large skill (many tasks, each with a full
+        # reference) plus a reasoning model's thinking tokens can be big. Too
+        # low a ceiling silently truncates the JSON and caps the task count.
+        response = adapter.generate(system_prompt, user_prompt, max_tokens=32768)
     except Exception as exc:
         print(f"ERROR: LLM call failed: {exc}", file=sys.stderr)
         return 1
@@ -831,10 +834,21 @@ def _apply_robustness_fixes(
 
     if modified_tasks:
         refs_dir = skill_dir / "references"
-        for task_id, new_content in modified_tasks.items():
-            ref_path = refs_dir / f"{task_id}.md"
-            ref_path.write_text(new_content, encoding="utf-8")
-        applied = True
+        # The robustness LLM is told to key modified_tasks by bare task id,
+        # but it sometimes returns a full path ("references/foo.md") instead.
+        # Normalize defensively and only write to tasks that actually exist —
+        # never fabricate a file for an id the LLM invented.
+        valid_ids = {t["id"] for t in result.definition.get("tasks", [])}
+        for raw_key, new_content in modified_tasks.items():
+            task_id = _normalize_item_key(raw_key, "references")
+            if task_id not in valid_ids:
+                print(f"  (skipped modified task with unknown id: '{raw_key}')",
+                      file=sys.stderr)
+                continue
+            (refs_dir / f"{task_id}.md").write_text(
+                new_content, encoding="utf-8"
+            )
+            applied = True
 
     if modified_perspectives:
         # Merge modified perspectives into the existing list.
@@ -847,6 +861,11 @@ def _apply_robustness_fixes(
             elif isinstance(p, dict):
                 persp_map[p.get("name", "")] = p
         for mp in modified_perspectives:
+            # Normalize the name the same way (strip perspectives/ + .md)
+            mp = dict(mp)
+            mp["name"] = _normalize_item_key(mp.get("name", ""), "perspectives")
+            if not mp["name"]:
+                continue
             persp_map[mp["name"]] = mp
         result.definition["perspectives"] = list(persp_map.values())
         try:
@@ -858,22 +877,47 @@ def _apply_robustness_fixes(
     return applied
 
 
+def _normalize_item_key(raw: str, subdir: str) -> str:
+    """Reduce an LLM-supplied task/perspective key to a bare id.
+
+    The robustness LLM is asked for bare ids but may return a path like
+    ``references/foo.md`` or ``foo.md``. Strip a leading ``<subdir>/`` and a
+    trailing ``.md`` so path construction never doubles up.
+    """
+    key = str(raw).strip().replace("\\", "/")
+    prefix = f"{subdir}/"
+    if key.startswith(prefix):
+        key = key[len(prefix):]
+    if key.endswith(".md"):
+        key = key[:-len(".md")]
+    return key.strip("/")
+
+
 def _print_success(skill_dir: Path, definition: SkillDefinition,
                    is_llm: bool = False) -> None:
     """Print a helpful summary after generating a skill."""
     hint = "  (ready to use)" if is_llm else "  (fill in the TODO placeholders)"
 
+    persp_dir = skill_dir / "perspectives"
+    persp_files = sorted(persp_dir.glob("*.md")) if persp_dir.is_dir() else []
+
     print(f"\nDone! Created: {skill_dir}/")
     print(f"  ├── SKILL.md")
     print(f"  ├── config.yaml")
-    print(f"  └── references/")
+    print(f"  ├── references/")
     for task in definition.tasks:
         fname = Path(task.file).name
-        print(f"      ├── {fname}{hint}")
+        print(f"  │   ├── {fname}{hint}")
+    if persp_files:
+        print(f"  └── perspectives/")
+        for pf in persp_files:
+            print(f"      ├── {pf.name}")
 
     task_word = "task" if len(definition.tasks) == 1 else "tasks"
     if is_llm:
-        print(f"\n{len(definition.tasks)} {task_word} file(s) generated "
+        extra = (f" + {len(persp_files)} perspective(s)"
+                 if persp_files else "")
+        print(f"\n{len(definition.tasks)} {task_word} file(s){extra} generated "
               f"— ready for the Batch-Pool Engine.")
     else:
         print(f"\n{len(definition.tasks)} {task_word} file(s) generated. "

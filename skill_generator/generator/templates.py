@@ -194,6 +194,8 @@ loop:
   #    rounds → "converged — diminishing returns"
   # 3. max_iterations reached → "hard cap"
 
+  # Perspectives are indexed here (name/label/file); their critique prompt
+  # bodies live in perspectives/*.md, one file per perspective.
   perspectives:
 $perspectives_yaml
 
@@ -251,5 +253,15 @@ REFERENCE_TEMPLATE = Template(
 - 70-89: <!-- TODO -->
 - 50-69: <!-- TODO -->
 - <50: <!-- TODO -->
+"""
+)
+
+# --- perspectives/*.md ---
+# A perspective file holds one critique instruction. The Engine sends the
+# whole file as the perspective's prompt (same contract as references/*.md).
+PERSPECTIVE_TEMPLATE = Template(
+    """# $label
+
+$prompt
 """
 )

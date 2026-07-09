@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import shutil
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,7 @@ from typing import Any
 from skill_generator.generator.templates import (
     BUILTIN_PERSPECTIVES,
     CONFIG_YAML_TEMPLATE,
+    PERSPECTIVE_TEMPLATE,
     REFERENCE_TEMPLATE,
     SKILL_MD_TEMPLATE,
     SkillDefinition,
@@ -41,11 +43,13 @@ logger = logging.getLogger(__name__)
 def _resolve_perspectives(raw_list: list) -> list[dict]:
     """Resolve and deduplicate a mixed list of perspective names + dicts.
 
-    Rules (per spec §5):
+    Rules:
     - String entries are looked up in ``BUILTIN_PERSPECTIVES``.
     - Dict entries are used as-is.
     - Later same-*name* entries override earlier ones (last-write-wins).
     - Unknown string names raise ``ValueError``.
+    - Each resolved entry is guaranteed to carry ``name``, ``label``,
+      ``prompt`` and ``needs_context`` keys (``label`` defaults to ``name``).
 
     Returns a list of resolved perspective dicts in insertion order
     (minus overridden entries).
@@ -67,7 +71,48 @@ def _resolve_perspectives(raw_list: list) -> list[dict]:
         else:
             logger.warning("Skipping unrecognised perspective entry: %r", entry)
 
+    # Guarantee a label on every resolved perspective (default = name)
+    for name, p in resolved.items():
+        p.setdefault("label", name)
+
     return list(resolved.values())
+
+
+def _yaml_dq(value: str) -> str:
+    """Return *value* as a safe YAML double-quoted scalar (single line).
+
+    Free-text fields (description, output_schema, labels) can contain quotes,
+    colons, backslashes, or newlines that would break hand-rolled YAML. This
+    escapes them per the YAML double-quoted style and folds newlines to spaces
+    (these fields are single-line).
+    """
+    s = str(value).replace("\\", "\\\\").replace('"', '\\"')
+    s = s.replace("\n", " ").replace("\r", " ")
+    return f'"{s}"'
+
+
+def _perspective_filename(name: str, index: int, seen: set[str]) -> str:
+    """Return a safe, unique filename stem for a perspective.
+
+    Perspective ``name`` is contractually kebab-case ASCII (parallel to task
+    ``id``), so the slug is usually the name unchanged. Defensive fallbacks:
+    - empty slug (e.g. a pure-CJK name) → positional ``perspective-NN``
+    - collision with an already-used stem → suffix ``-2``, ``-3``, ...
+
+    NOTE: do NOT delegate to ``_to_kebab_case`` — that returns "" for CJK
+    input, which would collapse every Chinese-named perspective onto one file.
+    """
+    slug = re.sub(r"[^a-z0-9]+", "-", str(name).lower()).strip("-")
+    if not slug:
+        slug = f"perspective-{index + 1:02d}"
+
+    base = slug
+    n = 2
+    while slug in seen:
+        slug = f"{base}-{n}"
+        n += 1
+    seen.add(slug)
+    return slug
 
 
 # ═══════════════════════════════════════════════════════════
@@ -119,8 +164,10 @@ class SkillGenerator:
         # ── 2. SKILL.md ──
         self._write_skill_md(skill_dir, definition)
 
-        # ── 3. config.yaml ──
-        self._write_config_yaml(skill_dir, definition)
+        # ── 3. config.yaml + perspective files ──
+        resolved = self._resolve_perspective_files(definition)
+        self._write_config_yaml(skill_dir, definition, resolved)
+        self._write_perspectives(skill_dir, resolved)
 
         # ── 4. reference files ──
         refs_dir = skill_dir / "references"
@@ -146,11 +193,13 @@ class SkillGenerator:
         Empty optional fields (author, tags) are omitted to avoid
         VS Code / YAML linter warnings.
         """
-        # Build YAML frontmatter manually — skip empty optionals
+        # Build YAML frontmatter manually — skip empty optionals.
+        # Free-text values go through _yaml_dq so quotes/colons/backslashes
+        # in LLM output can't break the YAML.
         yaml_lines = [
             "---",
             f"name: {definition.name}",
-            f"description: {definition.description}",
+            f"description: {_yaml_dq(definition.description)}",
             f'version: "{definition.version}"',
         ]
         if definition.category:
@@ -159,38 +208,83 @@ class SkillGenerator:
             tags_str = ", ".join(definition.tags)
             yaml_lines.append(f"tags: [{tags_str}]")
         if definition.author:
-            yaml_lines.append(f"author: {definition.author}")
+            yaml_lines.append(f"author: {_yaml_dq(definition.author)}")
         if definition.output_schema:
-            yaml_lines.append(f'output_schema: "{definition.output_schema}"')
+            yaml_lines.append(f"output_schema: {_yaml_dq(definition.output_schema)}")
 
         yaml_lines.append("")
         yaml_lines.append("tasks:")
         for task in definition.tasks:
             yaml_lines.append(f"  - id: {task.id}")
             yaml_lines.append(f"    file: {task.file}")
-            yaml_lines.append(f'    label: "{task.label}"')
+            yaml_lines.append(f"    label: {_yaml_dq(task.label)}")
             yaml_lines.append(f"    priority: {task.priority}")
         yaml_lines.append("---")
 
         content = "\n".join(yaml_lines) + "\n"
         (skill_dir / "SKILL.md").write_text(content, encoding="utf-8")
 
-    def _write_config_yaml(self, skill_dir: Path, definition: SkillDefinition) -> None:
-        """Write config.yaml with resolved Loop perspectives."""
-        perspectives = _resolve_perspectives(definition.perspectives)
+    def _resolve_perspective_files(
+        self, definition: SkillDefinition
+    ) -> list[dict]:
+        """Resolve perspectives and assign each a stable ``perspectives/*.md``
+        path. Filenames are computed ONCE here so the config.yaml index and the
+        written files always agree.
 
-        if perspectives:
+        Each returned dict has: ``name``, ``label``, ``file``,
+        ``needs_context``, ``prompt`` (``prompt`` is ``None`` for a
+        pre-authored entry that already carried a ``file`` and no prompt —
+        such entries are indexed but not (over)written).
+        """
+        resolved = _resolve_perspectives(definition.perspectives)
+        seen: set[str] = set()
+        out: list[dict] = []
+        for i, p in enumerate(resolved):
+            name = p["name"]
+            label = p.get("label", name)
+            needs_context = bool(p.get("needs_context", False))
+
+            # Pre-authored: entry already points at a file and has no prompt
+            # body → index verbatim, never overwrite the user's content.
+            if p.get("file") and not p.get("prompt"):
+                # reserve its stem so a later generated file can't collide
+                stem = Path(p["file"]).stem
+                if stem:
+                    seen.add(stem)
+                out.append({
+                    "name": name, "label": label, "file": p["file"],
+                    "needs_context": needs_context, "prompt": None,
+                })
+                continue
+
+            stem = _perspective_filename(name, i, seen)
+            out.append({
+                "name": name,
+                "label": label,
+                "file": f"perspectives/{stem}.md",
+                "needs_context": needs_context,
+                "prompt": p.get("prompt", ""),
+            })
+        return out
+
+    def _write_config_yaml(
+        self, skill_dir: Path, definition: SkillDefinition,
+        resolved: list[dict],
+    ) -> None:
+        """Write config.yaml. Perspectives are emitted as a thin INDEX
+        (name / label / file / needs_context) — their prompt bodies live in
+        perspectives/*.md. All index values are simple scalars, so the YAML is
+        always valid (unlike the old inline folded-scalar emitter)."""
+        if resolved:
             loop_enabled = "true"
-            perspective_lines: list[str] = []
-            for p in perspectives:
-                perspective_lines.append(f"    - name: {p['name']}")
-                # Fold multi-line prompt into a YAML folded-block scalar
-                prompt_text = p["prompt"].replace("\n", "\n      ")
-                perspective_lines.append("      prompt: >")
-                perspective_lines.append(f"        {prompt_text}")
-                if p.get("needs_context"):
-                    perspective_lines.append("      needs_context: true")
-            perspectives_yaml = "\n".join(perspective_lines)
+            lines: list[str] = []
+            for p in resolved:
+                lines.append(f"    - name: {p['name']}")
+                lines.append(f"      label: {_yaml_dq(p['label'])}")
+                lines.append(f"      file: {p['file']}")
+                if p["needs_context"]:
+                    lines.append("      needs_context: true")
+            perspectives_yaml = "\n".join(lines)
         else:
             loop_enabled = "false"
             perspectives_yaml = "    []"
@@ -208,6 +302,27 @@ class SkillGenerator:
         )
 
         (skill_dir / "config.yaml").write_text(content, encoding="utf-8")
+
+    def _write_perspectives(
+        self, skill_dir: Path, resolved: list[dict]
+    ) -> None:
+        """Write one perspectives/*.md file per perspective that carries a
+        prompt body. Entries with a pre-authored file (prompt is None) are
+        skipped so user content is never clobbered."""
+        to_write = [p for p in resolved if p.get("prompt") is not None]
+        if not to_write:
+            return
+
+        persp_dir = skill_dir / "perspectives"
+        persp_dir.mkdir(exist_ok=True)
+        for p in to_write:
+            content = PERSPECTIVE_TEMPLATE.substitute(
+                label=p["label"],
+                prompt=p["prompt"],
+            )
+            file_name = Path(p["file"]).name
+            (persp_dir / file_name).write_text(content, encoding="utf-8")
+
 
     def _write_reference(self, refs_dir: Path, task: TaskDefinition) -> None:
         """Write a single reference skeleton file."""
@@ -265,8 +380,10 @@ class SkillGenerator:
         # ── 2. SKILL.md ──
         self._write_skill_md(skill_dir, definition)
 
-        # ── 3. config.yaml ──
-        self._write_config_yaml(skill_dir, definition)
+        # ── 3. config.yaml + perspective files ──
+        resolved = self._resolve_perspective_files(definition)
+        self._write_config_yaml(skill_dir, definition, resolved)
+        self._write_perspectives(skill_dir, resolved)
 
         # ── 4. reference files (LLM content, not skeleton) ──
         refs_dir = skill_dir / "references"

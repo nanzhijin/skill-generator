@@ -167,31 +167,37 @@ class AnthropicAdapter:
 
         Uses a high *max_tokens* default because reasoning models
         (DeepSeek-v4) spend tokens on internal thinking before producing
-        text output.  16K ensures enough budget for both phases.
+        text output.
+
+        Streams the response: the SDK rejects non-streaming requests whose
+        *max_tokens* could exceed the 10-minute ceiling, and large skills
+        (many tasks) need that headroom. Streaming also avoids silent
+        truncation of the JSON that caps the task count.
         """
-        response = self._client.messages.create(
+        text_parts: list[str] = []
+        with self._client.messages.stream(
             model=model or self._default_model,
             max_tokens=max_tokens,
             system=system_prompt,
             messages=[{"role": "user", "content": user_prompt}],
-        )
-        text_blocks = [
-            b.text for b in response.content if b.type == "text"
-        ]
-        if not text_blocks:
-            # Reasoning models may exhaust token budget on thinking.
-            # Report how much thinking was done vs text produced.
+        ) as stream:
+            for text in stream.text_stream:
+                text_parts.append(text)
+            final = stream.get_final_message()
+
+        if not text_parts:
+            # Reasoning models may exhaust token budget on thinking alone.
             thinking_len = sum(
                 len(getattr(b, "thinking", "") or "")
-                for b in response.content
+                for b in final.content
             )
             raise RuntimeError(
                 f"LLM produced no text output "
-                f"(stop_reason={response.stop_reason}, "
+                f"(stop_reason={final.stop_reason}, "
                 f"thinking_chars={thinking_len}). "
                 f"Try increasing max_tokens (current={max_tokens})."
             )
-        return "".join(text_blocks)
+        return "".join(text_parts)
 
     def research(
         self,
