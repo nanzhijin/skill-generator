@@ -173,24 +173,34 @@ def _extract_json(raw: str) -> str | None:
     """Extract JSON string from LLM response.
 
     Tries three strategies in order:
-    1. Match ```json ... ``` code fence
-    2. Match ``` ... ``` code fence (no language tag)
-    3. Return raw text as-is (hoping it's bare JSON)
+    Strategy order matters: a bare JSON object that itself CONTAINS a
+    ```json fenced example inside a string value must be treated as the
+    whole object, NOT the inner fence. So we check for a leading brace
+    first, and only fall back to fence extraction when the response is
+    genuinely wrapped in a fence.
+
+    1. Response starts with '{' → treat entire trimmed text as JSON
+    2. Response opens with a ```json / ``` fence → extract fence content
+    3. First '{' anywhere → substring from there to the last '}'
     """
-    # Strategy 1: ```json ... ```
-    m = re.search(r"```json\s*\n?(.*?)```", raw, re.DOTALL)
-    if m:
-        return m.group(1).strip()
-
-    # Strategy 2: ``` ... ``` (first code fence)
-    m = re.search(r"```\s*\n?(.*?)```", raw, re.DOTALL)
-    if m:
-        return m.group(1).strip()
-
-    # Strategy 3: bare JSON — look for opening brace
     trimmed = raw.strip()
+
+    # Strategy 1: bare JSON object at the top level (most common, and the
+    # only correct read when the JSON embeds fenced examples in its strings)
     if trimmed.startswith("{"):
         return trimmed
+
+    # Strategy 2: response is wrapped in a leading code fence
+    if trimmed.startswith("```"):
+        m = re.match(r"```(?:json)?\s*\n?(.*?)```", trimmed, re.DOTALL)
+        if m:
+            return m.group(1).strip()
+
+    # Strategy 3: prose before a JSON object — slice from first { to last }
+    start = trimmed.find("{")
+    end = trimmed.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        return trimmed[start:end + 1]
 
     return None
 
